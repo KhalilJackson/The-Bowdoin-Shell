@@ -1,0 +1,47 @@
+#
+# trace12.txt - Simple error handling
+#
+echo bsh> ./bogus
+./bogus
+
+echo -e bsh> ./myspin 4 \046
+./myspin 4 &
+
+echo bsh> fg
+fg
+
+echo bsh> bg
+bg
+
+echo bsh> fg a
+fg a
+
+echo bsh> bg a
+bg a
+
+echo bsh> fg 9999999
+fg 9999999
+
+echo bsh> bg 9999999
+bg 9999999
+
+echo bsh> fg %2
+fg %2
+
+echo bsh> fg %1
+fg %1
+
+SLEEP 2
+TSTP
+
+echo bsh> bg %2
+bg %2
+
+echo bsh> bg %1
+bg %1
+
+echo bsh> jobs
+jobs
+
+
+

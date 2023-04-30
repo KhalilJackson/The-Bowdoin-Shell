@@ -1,0 +1,22 @@
+#
+# trace08.txt - Process fg builtin command. 
+#
+echo -e bsh> ./myspin 4 \046
+./myspin 4 &
+
+SLEEP 1
+echo bsh> fg %1
+fg %1
+
+SLEEP 1
+TSTP
+
+echo bsh> jobs
+jobs
+
+echo bsh> fg %1
+fg %1
+
+echo bsh> jobs
+jobs
+

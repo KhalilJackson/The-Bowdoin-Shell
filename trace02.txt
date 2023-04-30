@@ -1,0 +1,5 @@
+#
+# trace02.txt - Run a background job.
+#
+echo -e bsh> ./myspin 1 \046
+./myspin 1 &

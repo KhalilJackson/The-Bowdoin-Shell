@@ -1,0 +1,20 @@
+#
+# trace07.txt - Process bg builtin command
+#
+echo -e bsh> ./myspin 4 \046
+./myspin 4 &
+
+echo -e bsh> ./myspin 5
+./myspin 5 
+
+SLEEP 2
+TSTP
+
+echo bsh> jobs
+jobs
+
+echo bsh> bg %2
+bg %2
+
+echo bsh> jobs
+jobs

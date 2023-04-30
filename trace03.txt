@@ -1,0 +1,11 @@
+#
+# trace03.txt - Process jobs builtin command.
+#
+echo -e bsh> ./myspin 2 \046
+./myspin 2 &
+
+echo -e bsh> ./myspin 3 \046
+./myspin 3 &
+
+echo bsh> jobs
+jobs

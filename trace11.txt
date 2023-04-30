@@ -1,0 +1,23 @@
+#
+# trace11.txt - Restart every stopped process in process group
+#
+echo -e bsh> ./mysplit 4
+./mysplit 4 
+
+SLEEP 2
+TSTP
+
+echo bsh> jobs
+jobs
+
+echo bsh> ps w
+ps w
+
+echo bsh> fg %1
+fg %1
+
+echo bsh> ps w
+ps w
+
+
+
