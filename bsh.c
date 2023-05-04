@@ -1,7 +1,7 @@
 /* 
  * bsh - the Bowdoin Shell
  * 
- * <PUT THE NAME OF ALL GROUP MEMBERS HERE>
+ * <Khalil Jackson, Diyaa Yaqub>
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -155,7 +155,48 @@ int main(int argc, char** argv) {
 */
 void eval(char* cmdline) {
   // TODO - implement me!
-  return;
+
+char* argv[MAXARGS]; // a local array that holds MAXARGS pointers
+int bg = parseline(cmdline, argv); 
+
+/*
+Since you are working in C, you will need to create a separate buffer to hold the (larger, prepended) program name. 
+Declare the buffer, copy the "/bin/" string into it using strcpy, 
+then append the original program name (e.g., "ls") using strcat
+*/
+//todo UM DID I DO THIS CORRECTLY...
+char path[100] = "./bin/";
+char buffer[100];
+strcpy(path,buffer); 
+strcat(buffer, argv[0]);
+argv[0] = path; 
+
+
+//check if it is a builtin
+int builtIn = builtin_cmd(argv);
+if (builtIn == 1) {
+
+//you want to call execv immedietely i think
+
+//TODO MISSING AN ARG HERE BUT I DONT UNDERSTAND IT
+execve(argv, environ); 
+
+} else {
+//fork() 
+
+	if (bg == 1) {
+	//check if bg or fg
+	//if its a bg child, call execve, use addjob(job_t* jobs, pid_t pid, int state, char* cmdline) and then return? 
+	} else {
+	//if its a fg child: 
+	//UM IDK????
+	}
+} 
+
+// if fg: wait for it to terminate , return
+// if bg: return; 
+ 
+ return;
 }
 
 /* 
@@ -243,6 +284,29 @@ int builtin_cmd(char** argv) {
  */
 void do_bgfg(char** argv) {
   // TODO - implement me!
+
+//if bg <job>
+//send sigcont
+//bg command: stopped --> bg
+
+//check if argv is jid or pid
+//get jobpid method
+//get jobjid method
+
+//after you get the job, 
+
+//if fg <job>
+//send sigcont
+//fg command: 
+//stopped --> fg
+//bg --> fg
+
+
+
+//THESE TWO WILL BE JUST TAKEN FROM COMMAND LINE AND CALL THE HANDLERS THEMSELCES
+//(THESE SHOULD BE IN THE METHOD)
+//if ctrlc: SIGINT delivered to fg job (all processess) 
+//if ctrlz: SIGSTP delivered to fg. makes it into stopped 
   return;
 }
 
@@ -267,6 +331,8 @@ void waitfg(pid_t pid) {
  */
 void sigchld_handler(int sig) {
   // TODO - implement me!
+
+//confused?? what does it mean to reap?? 
   return;
 }
 
@@ -276,7 +342,9 @@ void sigchld_handler(int sig) {
  */
 void sigint_handler(int sig) {
   // TODO - implement me!
-  return;
+ 
+//what does forwarding consist of?? 
+ return;
 }
 
 /*
