@@ -156,6 +156,8 @@ int main(int argc, char** argv) {
 void eval(char* cmdline) {
   // TODO - implement me!
 
+//BIG MAIN QUESTION: are you manually sending any signals
+
 char* argv[MAXARGS]; // a local array that holds MAXARGS pointers
 int bg = parseline(cmdline, argv); 
 
@@ -165,37 +167,58 @@ Declare the buffer, copy the "/bin/" string into it using strcpy,
 then append the original program name (e.g., "ls") using strcat
 */
 //todo UM DID I DO THIS CORRECTLY...
+if (*argv[0] != '.' || *argv[0] != '/') {
+
 char path[100] = "./bin/";
 char buffer[100];
 strcpy(path,buffer); 
 strcat(buffer, argv[0]);
 argv[0] = path; 
+}
 
+//parent continues to run bsh
+//child calls execve
+//parent adds to addjob
 
 //check if it is a builtin
+//if builtin, runs immeditely
 int builtIn = builtin_cmd(argv);
-if (builtIn == 1) {
 
-//you want to call execv immedietely i think
 
-//TODO MISSING AN ARG HERE BUT I DONT UNDERSTAND IT
-execve(argv, environ); 
+//ALSO IM CONFUSED SHOULD WE BE USING MASKS HERE TO DEAL WITH SIGNAL HANDLERS... 
 
-} else {
-//fork() 
-
-	if (bg == 1) {
-	//check if bg or fg
-	//if its a bg child, call execve, use addjob(job_t* jobs, pid_t pid, int state, char* cmdline) and then return? 
+//if its not builtin
+if (builtIn == 0) {
+	pid_t pidC = fork();
+	if (pidC == 0) { // if child process
+	execve(argv[0], argv, environ); 
 	} else {
-	//if its a fg child: 
-	//UM IDK????
-	}
+		//parent (shell process)
+		addjob(jobs, pidC, bg, cmdline);
+		if (bg == 0) { //if fg job, need to wait
+			waitfg(pidC); 
+		}
+	}	
+
+	//the parent is the shell prcess
+	//if its a parent
+	//they need to wait for it to be a 
+	//parent adds the new job 
+	//wait for 
+
+	//sig suspend  puts shell to sleep until a 
+	///when you wake up from sig suspend to check if the foreground 
+	//use the jobs list to see if its actually done 
+
+	//when the child finishes, a sigchild will be 
+	//sig child will update it appropriately
+	//u are still in wait fg, watching hte jobs list to wait for the update 
+	//IN WAIT FG you are watching the jobs list, you are actually modifying it when teh sigchild handler runs
+	//we will see when it is reflected
+
 } 
 
-// if fg: wait for it to terminate , return
 // if bg: return; 
- 
  return;
 }
 
@@ -315,7 +338,20 @@ void do_bgfg(char** argv) {
  */
 void waitfg(pid_t pid) {
   // TODO - implement me!
-  return;
+sigset_t set; 
+int success = sigsuspend(&set); 
+if (success != -1) {
+	for (int i = 0; i < MAXJOBS; i++) {
+        	if (jobs[i].pid == pid) {
+			while (jobs[i].state !=  UNDEF) {
+				sigsuspend(&set); 
+			}
+		}
+	}
+}
+//return when process is undefined in jobs list
+//until then, keep sigsuspending
+ return;
 }
 
 /*****************
@@ -332,6 +368,12 @@ void waitfg(pid_t pid) {
 void sigchld_handler(int sig) {
   // TODO - implement me!
 
+//when the handler is called, this means there sigchild signal sent
+//there must be at least a suspended OR terminated process for this to be called
+
+//to detect a suspended process, use waitpid, and update the job list
+
+
 //confused?? what does it mean to reap?? 
   return;
 }
@@ -342,9 +384,14 @@ void sigchld_handler(int sig) {
  */
 void sigint_handler(int sig) {
   // TODO - implement me!
- 
-//what does forwarding consist of?? 
- return;
+
+//finding fg job
+int fpid = fgpid(jobs); 
+if (fpid != 0) {
+	//forwarding to fg job
+	kill(sig, fpid); 
+}
+return;
 }
 
 /*
