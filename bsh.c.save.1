@@ -159,25 +159,9 @@ void eval(char* cmdline) {
 //BIG MAIN QUESTION: are you manually sending any signals
 
 char* argv[MAXARGS]; // a local array that holds MAXARGS pointers
-int bg = parseline(cmdline, argv);
+int bg = parseline(cmdline, argv); 
 
-//printf("The word: %s", argv);
-
-//builtin_cmd(argv);
-
-
-if (!builtin_cmd(argv)) {
-
-	char* name = malloc(sizeof(argv[0]) + sizeof("/bin/"));
-	strcpy(name, "/bin/");
-	strcat(argv[0], name);
-
-	execve(argv[0],argv,environ);
-}
-
-
-
-
+if (argv[0] = "q" || argv[0] = "q" || argv[0] = "q" || argv[0] = "q")
 
 /*
 Since you are working in C, you will need to create a separate buffer to hold the (larger, prepended) program name. 
@@ -356,9 +340,7 @@ void do_bgfg(char** argv) {
  */
 void waitfg(pid_t pid) {
   // TODO - implement me!
-sigset_t set;
-sigemptyset(&set);
- 
+sigset_t set; 
 int success = sigsuspend(&set); 
 if (success != -1) {
 	for (int i = 0; i < MAXJOBS; i++) {
