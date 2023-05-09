@@ -158,67 +158,39 @@ void eval(char* cmdline) {
 
 	//BIG MAIN QUESTION: are you manually sending any signals
 
-	char* argv[MAXARGS]; // a local array that holds MAXARGS pointers
-	int bg = parseline(cmdline, argv);
+char* argv[MAXARGS]; // a local array that holds MAXARGS pointers
+int bg = parseline(cmdline, argv);
 
-	sigset_t mask;
-	sigemptyset (&mask);
+sigset_t mask; 
+sigemptyset(&mask);
+sigaddset(&mask, SIGCHLD); 
 
-	sigaddset(&mask, SIGCHILD);
-
-	while(1) {
-
-		sigpromask(SIG_BLOCK, &mask, NULL);
-
-		if ((pid = fork() == 0) {
-
-			sigprocmask(SIG_UNBLCK);
-			//execve();
-		}
-
-		addjob(pid);
-		sigprocmask(SIG_BLOCK, &mask, NULL)
-	}
-
-	return 0;
-}
-
-
-
-
-
-//printf("The word: %s", argv);
-
-//builtin_cmd(argv);
-
-
-if (!builtin_cmd(argv)) {
-
-	char* name = malloc(sizeof(argv[0]) + sizeof("/bin/"));
-	strcpy(name, "/bin/");
-	strcat(argv[0], name);
-
-	execve(argv[0],argv,environ);
-}
-
-
-
-
-
-/*
-Since you are working in C, you will need to create a separate buffer to hold the (larger, prepended) program name. 
+/* Since you are working in C, you will need to create a separate buffer to hold the (larger, prepended) program name. 
 Declare the buffer, copy the "/bin/" string into it using strcpy, 
 then append the original program name (e.g., "ls") using strcat
 */
 //todo UM DID I DO THIS CORRECTLY...
-if (*argv[0] != '.' || *argv[0] != '/') {
+//if (*argv[0] != '.' || *argv[0] != '/') {
 
-char path[100] = "./bin/";
-char buffer[100];
-strcpy(path,buffer); 
-strcat(buffer, argv[0]);
-argv[0] = path; 
+
+
+char* args = argv[0];
+int argsSize = 0; 
+while (*args) {
+	argsSize++;
+	args++;
 }
+
+char buffer[argsSize + 6]; //seperate buffer
+
+if (argv[0][0] != '.' && argv[0][0] != '/') {
+strcpy(buffer, "/bin/"); 
+strcat(buffer, argv[0]);
+argv[0] = buffer; 
+}
+
+
+
 
 //parent continues to run bsh
 //child calls execve
@@ -227,18 +199,30 @@ argv[0] = path;
 //check if it is a builtin
 //if builtin, runs immeditely
 int builtIn = builtin_cmd(argv);
-
+if (builtIn) {
+return;
+}
 
 //ALSO IM CONFUSED SHOULD WE BE USING MASKS HERE TO DEAL WITH SIGNAL HANDLERS... 
 
 //if its not builtin
 if (builtIn == 0) {
+	sigprocmask(SIG_BLOCK, &mask, NULL); //block sigchild
 	pid_t pidC = fork();
+	
 	if (pidC == 0) { // if child process
-	execve(argv[0], argv, environ); 
+		sigprocmask(SIG_UNBLOCK, &mask, NULL); //if its a child, unblock 
+		setpgid(0, 0);
+		execve(argv[0], argv, environ); 
 	} else {
+		//FIX BGORFG
 		//parent (shell process)
-		addjob(jobs, pidC, bg, cmdline);
+		if (bg == 0) { //fg
+		addjob(jobs, pidC, FG, cmdline);
+		}  else {
+		addjob(jobs, pidC, BG, cmdline);
+		}
+		sigprocmask(SIG_UNBLOCK, &mask, NULL); //unblcok sigchild		
 		if (bg == 0) { //if fg job, need to wait
 			waitfg(pidC); 
 		}
@@ -384,17 +368,12 @@ void waitfg(pid_t pid) {
   // TODO - implement me!
 sigset_t set;
 sigemptyset(&set);
- 
-int success = sigsuspend(&set); 
-if (success != -1) {
-	for (int i = 0; i < MAXJOBS; i++) {
-        	if (jobs[i].pid == pid) {
-			while (jobs[i].state !=  UNDEF) {
-				sigsuspend(&set); 
-			}
-		}
+job_t * curJob = getjobpid(jobs, pid); 
+
+//int success = sigsuspend(&set); 
+while (curJob->state !=  FG) {
+		sigsuspend(&set); 
 	}
-}
 //return when process is undefined in jobs list
 //until then, keep sigsuspending
  return;
@@ -413,6 +392,27 @@ if (success != -1) {
  */
 void sigchld_handler(int sig) {
   // TODO - implement me!
+
+
+//SIGTSTP,SIGSTOP  suspend
+
+
+
+
+//if it is supsended, update the state to suspended
+
+//if it is terminated, then we want to reap 
+//HOW DO WE CHECK IF IT IS TERMINATED OR NOT
+
+pid_t pid; 
+
+//retursn chidl that it was reaped
+
+while ((pid = waitpid(-1, NULL, WNOHANG)) > 0){
+//while there are children to be reaped
+deletejob(jobs, pid); 
+}; 
+
 
 //when the handler is called, this means there sigchild signal sent
 //there must be at least a suspended OR terminated process for this to be called
@@ -435,7 +435,7 @@ void sigint_handler(int sig) {
 int fpid = fgpid(jobs); 
 if (fpid != 0) {
 	//forwarding to fg job
-	kill(sig, fpid); 
+	kill(fpid,sig); 
 }
 return;
 }
