@@ -156,36 +156,26 @@ int main(int argc, char** argv) {
 void eval(char* cmdline) {
   // TODO - implement me!
 
-	//BIG MAIN QUESTION: are you manually sending any signals
+//BIG MAIN QUESTION: are you manually sending any signals
 
-	char* argv[MAXARGS]; // a local array that holds MAXARGS pointers
-	int bg = parseline(cmdline, argv);
+char* argv[MAXARGS]; // a local array that holds MAXARGS pointers
+int bg = parseline(cmdline, argv); //0if background
 
-	sigset_t mask;
-	sigemptyset (&mask);
+if(!bg) {
 
-	sigaddset(&mask, SIGCHILD);
+sigset_t mask =
+pid_t pid = 
+int x = exexve;
 
-	while(1) {
+if (!builtin_cmd(argv)) {
 
-		sigpromask(SIG_BLOCK, &mask, NULL);
+sigemptyset
+sigpromtmask
 
-		if ((pid = fork() == 0) {
 
-			sigprocmask(SIG_UNBLCK);
-			//execve();
-		}
-
-		addjob(pid);
-		sigprocmask(SIG_BLOCK, &mask, NULL)
-	}
-
-	return 0;
 }
 
-
-
-
+}
 
 //printf("The word: %s", argv);
 
