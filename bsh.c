@@ -331,6 +331,9 @@ jid = atoi(jidS);
 
 //jid has percentage
 //pid has no percentage
+
+
+
 if (argv[0][0] == 'b') {
 //send sigcont to stopped bg job and continues running in bg
 
@@ -340,7 +343,16 @@ kill(job->pid , SIGCONT);
 job->state = BG;
 }
 
+
 else if (argv[0][0] == 'f') {
+
+//sned stopped or running bg a SICONT TO resume (if stopped) and continue running in fg
+job_t* job = getjobjid(jobs, jid);
+//regardless of stopped or not stopped, its sending sigcont
+kill(job->pid , SIGCONT);
+
+//even if job.state is STP or bg, doesnt matter
+job->state = FG;
 }
 
 
@@ -480,7 +492,6 @@ getjobjid(jobs,jid)->state = ST;
  */
 void sigint_handler(int sig) {
   // TODO - implement me!
-
 
 //finding fg job
 int fpid = fgpid(jobs); 
