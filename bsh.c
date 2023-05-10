@@ -321,6 +321,29 @@ int builtin_cmd(char** argv) {
 void do_bgfg(char** argv) {
   // TODO - implement me!
 
+int jid = 0; 
+//pid_t pid = 0; 
+if (argv[1][0] == '%') {
+char* jidS = argv[1] + 1;
+jid = atoi(jidS);
+}
+
+
+//jid has percentage
+//pid has no percentage
+if (argv[0][0] == 'b') {
+//send sigcont to stopped bg job and continues running in bg
+
+//get pid of the job number
+job_t* job = getjobjid(jobs, jid);
+kill(job->pid , SIGCONT);
+job->state = BG;
+}
+
+else if (argv[0][0] == 'f') {
+}
+
+
 //argv[0] is bg and argv[1] is job
 
 
@@ -352,7 +375,6 @@ void do_bgfg(char** argv) {
 //}
 
 //if bg <job>
-//send sigcont to stopped bg job and continues running in bg
 //bg command: stopped --> bg
 
 //check if argv is jid or pid
