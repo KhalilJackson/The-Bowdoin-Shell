@@ -408,7 +408,6 @@ while (curJob->state ==  FG) {
 void sigchld_handler(int sig) {
   // TODO - implement me!
 
-
 //SIGTSTP,SIGSTOP  suspend
 
 
@@ -420,13 +419,25 @@ void sigchld_handler(int sig) {
 //HOW DO WE CHECK IF IT IS TERMINATED OR NOT
 
 pid_t pid; 
+int stat; 
+int jid; 
 
-//retursn chidl that it was reaped
 
-while ((pid = waitpid(-1, NULL, WNOHANG)) > 0){
+while ((pid = waitpid(-1, &stat, WNOHANG)) > 0){
+
+if (WIFSIGNALED(stat)) {
+//child terminated by signal
+jid = pid2jid(pid); 
+printf("Job [%d] (%d) terminated by signal %d\n", jid, pid, WTERMSIG(stat));
+}
+
 //while there are children to be reaped
 deletejob(jobs, pid); 
+
 }; 
+
+//need to print out a message depending on which sig it was terminated by 
+
 
 
 //when the handler is called, this means there sigchild signal sent
@@ -445,6 +456,7 @@ deletejob(jobs, pid);
  */
 void sigint_handler(int sig) {
   // TODO - implement me!
+
 
 //finding fg job
 int fpid = fgpid(jobs); 
