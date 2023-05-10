@@ -156,8 +156,6 @@ int main(int argc, char** argv) {
 void eval(char* cmdline) {
   // TODO - implement me!
 
-	//BIG MAIN QUESTION: are you manually sending any signals
-
 char* argv[MAXARGS]; // a local array that holds MAXARGS pointers
 int bg = parseline(cmdline, argv);
 
@@ -170,40 +168,26 @@ Declare the buffer, copy the "/bin/" string into it using strcpy,
 then append the original program name (e.g., "ls") using strcat
 */
 //todo UM DID I DO THIS CORRECTLY...
-//if (*argv[0] != '.' || *argv[0] != '/') {
-
-
-
-char* args = argv[0];
-int argsSize = 0; 
-while (*args) {
-	argsSize++;
-	args++;
-}
-
-char buffer[argsSize + 6]; //seperate buffer
-
-if (argv[0][0] != '.' && argv[0][0] != '/') {
-strcpy(buffer, "/bin/"); 
-strcat(buffer, argv[0]);
-argv[0] = buffer; 
-}
-
-
-
-
-//parent continues to run bsh
-//child calls execve
-//parent adds to addjob
 
 //check if it is a builtin
 //if builtin, runs immeditely
 int builtIn = builtin_cmd(argv);
 if (builtIn) {
-return;
+	return;
 }
 
-//ALSO IM CONFUSED SHOULD WE BE USING MASKS HERE TO DEAL WITH SIGNAL HANDLERS... 
+char args = argv[0][0];
+int argsSize = 0; 
+while (args) {
+	argsSize++;
+	args++;
+}
+char buffer[argsSize + 6]; //seperate buffer
+if (argv[0][0] != '.' && argv[0][0] != '/') {
+	strcpy(buffer, "/bin/"); 
+	strcat(buffer, argv[0]);
+	argv[0] = buffer; 
+}
 
 //if its not builtin
 if (builtIn == 0) {
@@ -215,16 +199,16 @@ if (builtIn == 0) {
 		setpgid(0, 0);
 		execve(argv[0], argv, environ); 
 	} else {
-		//FIX BGORFG
 		//parent (shell process)
+		sigprocmask(SIG_UNBLOCK, &mask, NULL); //unblcok sigchild           
 		if (bg == 0) { //fg
-		addjob(jobs, pidC, FG, cmdline);
+			addjob(jobs, pidC, FG, cmdline);
+			waitfg(pidC);
 		}  else {
-		addjob(jobs, pidC, BG, cmdline);
-		}
-		sigprocmask(SIG_UNBLOCK, &mask, NULL); //unblcok sigchild		
-		if (bg == 0) { //if fg job, need to wait
-			waitfg(pidC); 
+			addjob(jobs, pidC, BG, cmdline);
+			//[20] (500) /bin/ls -l
+			int jid = pid2jid(pidC); 
+			safe_printf("[%d] (%d) %s", jid, pidC, cmdline);
 		}
 	}	
 
@@ -244,9 +228,10 @@ if (builtIn == 0) {
 	//IN WAIT FG you are watching the jobs list, you are actually modifying it when teh sigchild handler runs
 	//we will see when it is reflected
 
+	//parent continues to run bsh
+//child calls execve
+//parent adds to addjob
 } 
-
-// if bg: return; 
  return;
 }
 
@@ -336,8 +321,38 @@ int builtin_cmd(char** argv) {
 void do_bgfg(char** argv) {
   // TODO - implement me!
 
+//argv[0] is bg and argv[1] is job
+
+
+//jobs
+//if (argv[0] == "bg") {
+
+
+//getjobjid()
+
+//getjobpid()
+
+
+//error: running bg without specifying job
+
+//invalid jid to bg
+
+//invlaid jid to bg
+
+//specifying smth other than pid or jid for bg
+
+
+//bg job
+
+
+//} 
+
+//if (argv[0] == "fg") {
+
+//}
+
 //if bg <job>
-//send sigcont
+//send sigcont to stopped bg job and continues running in bg
 //bg command: stopped --> bg
 
 //check if argv is jid or pid
@@ -365,15 +380,15 @@ void do_bgfg(char** argv) {
  * waitfg - Block until process pid is no longer the foreground process.
  */
 void waitfg(pid_t pid) {
-  // TODO - implement me!
+// TODO - implement me!
 sigset_t set;
 sigemptyset(&set);
-job_t * curJob = getjobpid(jobs, pid); 
+job_t* curJob = getjobpid(jobs, pid); 
 
 //int success = sigsuspend(&set); 
-while (curJob->state !=  FG) {
-		sigsuspend(&set); 
-	}
+while (curJob->state ==  FG) {
+	sigsuspend(&set);
+}
 //return when process is undefined in jobs list
 //until then, keep sigsuspending
  return;
