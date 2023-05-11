@@ -323,31 +323,32 @@ int builtin_cmd(char** argv) {
 void do_bgfg(char** argv) {
   // TODO - implement me!
 
-//bool gj = 
 
 int jid = 0; 
-//pid_t pid = 0; 
+
+pid_t pid = 0; 
+
+job_t* job;
+//if given jid
 if (argv[1][0] == '%') {
 char* jidS = argv[1] + 1;
 jid = atoi(jidS);
-}
+job = getjobjid(jobs, jid);
+} else {
+pid = atoi(argv[1]);
+} 
 
 
-//check if nob is null, then see if there is a jid or pid to print 
-//the correct error message
-job_t job1 = getjobjid(jobs,jid);
-
-if (job1 == NULL) {
-	//if jid
-	if (argv[1][0] == '%') {
-		safe_printf("%%20: No such job");
-	}
-
-	//if pid
-	else {
-		safe_printf("(500): No such process");
+//if given jid is not valid
+if (jid != 0) {
+	if (job == NULL) {
+		safe_printf("%%[%d]: No such job", jid);
 	}
 }
+//} else {
+//if given pid not valid
+
+
 
 //pid_t pid = job->pid;
 
@@ -357,8 +358,6 @@ if (job1 == NULL) {
 //	safe_printf("(500): No such process");
 //}
 
-//if getjombjid retunr null, prints no such job, only if you have jid
-//it getjobpi is null, 
 
 //jid has percentage
 //pid has no percentage
@@ -374,50 +373,35 @@ if (argv[0][0] == 'b') {
 	}
 
 	//bg: argument must be a PID or %jobid
-	if (!isdigit(argv[1][0])) {
+	if (jid == 0 && pid == 0) {
 		safe_printf("bg: argument must be a PID or %%jobid");
 	}
 
 	//get pid of the job number
-	job_t* job = getjobjid(jobs, jid);
-	
-	//int pid = 
-
-	//if () {
-	//	safe_print("(500): No such process");
-	//}
-
-
-
+	job = getjobjid(jobs, jid);
 	job->state = BG;
-	//
-	safe_printf("[%d] (%d) %d\n", jid, pid, argv[0]);
-	//safe_printf([20] (500) /bin/ls -l);
+	safe_printf("[%d] (%d) %s", jid, job->pid, job->cmdline);
 	kill(job->pid , SIGCONT);
-	//job->state = BG;
 }
 
-//check if job id is digit
 else if (argv[0][0] == 'f') {
-
 	//checks if running fg without a job
 	if (argv[1] == NULL) {
 	 safe_printf("fg command requires PID or %%jobid argument");
 	}
 
-	//checks if specifying something other than a pid or jid for fg
-	if (!(argv[1] == pid || argv[1] == jid)) {
-		safe_printf("fg: argument must be a PID or %jobid");
-	}
 
-//sned stopped or running bg a SICONT TO resume (if stopped) and continue running in fg
-job_t* job = getjobjid(jobs, jid);
+	//if can't be converted to an int (not a pid or jid) 
+ //      safe_printf("fg: argument must be a PID or %jobid");
+
+
+//send stopped or running bg a SICONT TO resume (if stopped) and continue running in fg
+job = getjobjid(jobs, jid);
 //regardless of stopped or not stopped, its sending sigcont
-safe_printf("[%d] (%d) %d\n", jid, pid, argv[0]);
-kill(job->pid , SIGCONT);
+safe_printf("[%d] (%d) %s", jid, job->pid, job->cmdline);
 
-//even if job.state is STP or bg, doesnt matter
 job->state = FG;
+kill(job->pid , SIGCONT);
 }
 
 
