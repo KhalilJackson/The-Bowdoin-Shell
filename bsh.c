@@ -323,7 +323,6 @@ int builtin_cmd(char** argv) {
 void do_bgfg(char** argv) {
   // TODO - implement me!
 
-
 int jid = 0; 
 
 pid_t pid = 0; 
@@ -397,12 +396,15 @@ else if (argv[0][0] == 'f') {
 
 //send stopped or running bg a SICONT TO resume (if stopped) and continue running in fg
 job = getjobjid(jobs, jid);
-//regardless of stopped or not stopped, its sending sigcont
-safe_printf("[%d] (%d) %s", jid, job->pid, job->cmdline);
-
-job->state = FG;
-kill(job->pid , SIGCONT);
+if (job->state == ST) {
+	kill(job->pid , SIGCONT);
 }
+job->state = FG;
+waitfg(job->pid);
+}
+
+//safe_printf("[%d] (%d) %s", jid, job->pid, job->cmdline);
+//}
 
 
 //argv[0] is bg and argv[1] is job
@@ -504,21 +506,18 @@ jid = pid2jid(pid);
 
 //if child is stopped
 if (WIFSTOPPED(stat)) {
-printf("Job [%d] (%d) stopped by signal %d\n", jid, pid, WEXITSTATUS(stat));
+safe_printf("Job [%d] (%d) stopped by signal %d\n", jid, pid, WEXITSTATUS(stat));
 getjobjid(jobs,jid)->state = ST; 
-
-//if it is suspended, update state to suspended
 } else {
-
-
 	if (WIFSIGNALED(stat)) {
 	//child terminated by signal
-	printf("Job [%d] (%d) terminated by signal %d\n", jid, pid, WEXITSTATUS(stat));
+	safe_printf("Job [%d] (%d) terminated by signal %d\n", jid, pid, WEXITSTATUS(stat));
 	}
 	//only do this when terminated
 	//while there are children to be reaped
 	deletejob(jobs, pid); 
 }
+
 }; 
 
 //need to print out a message depending on which sig it was terminated by 
@@ -546,7 +545,7 @@ void sigint_handler(int sig) {
 int fpid = fgpid(jobs); 
 if (fpid != 0) {
 	//forwarding to fg job
-	kill(-fpid,sig); 
+	kill(-fpid,sig);
 }
 return;
 }
@@ -561,7 +560,9 @@ void sigtstp_handler(int sig) {
 int fpid = fgpid(jobs); //find pid of fg job 
 if (fpid != 0) {
         //forwarding to fg job
-        kill(-fpid,sig); 
+        kill(-fpid,sig);
+	job_t* job = getjobpid(jobs, fpid);	 
+	job->state = ST;
 }
  return;
 }
