@@ -163,26 +163,23 @@ sigset_t mask;
 sigemptyset(&mask);
 sigaddset(&mask, SIGCHLD); 
 
-/* Since you are working in C, you will need to create a separate buffer to hold the (larger, prepended) program name. 
-Declare the buffer, copy the "/bin/" string into it using strcpy, 
-then append the original program name (e.g., "ls") using strcat
-*/
-//todo UM DID I DO THIS CORRECTLY...
-
-//check if it is a builtin
 //if builtin, runs immeditely
 int builtIn = builtin_cmd(argv);
 if (builtIn) {
 	return;
 }
 
+//determines size of argv[0]
 char args = argv[0][0];
 int argsSize = 0; 
 while (args) {
 	argsSize++;
 	args++;
 }
-char buffer[argsSize + 6]; //seperate buffer
+
+char buffer[argsSize + 6];
+
+//prepend with /bin/ when it doesnt start with . or /
 if (argv[0][0] != '.' && argv[0][0] != '/') {
 	strcpy(buffer, "/bin/"); 
 	strcat(buffer, argv[0]);
@@ -195,23 +192,22 @@ if (builtIn == 0) {
 	pid_t pidC = fork();
 	
 	if (pidC == 0) { // if child process
-		sigprocmask(SIG_UNBLOCK, &mask, NULL); //if its a child, unblock 
+		sigprocmask(SIG_UNBLOCK, &mask, NULL); // unblock 
 		setpgid(0, 0);
+
+		//if invalid command, print message and exit
 		if(execve(argv[0], argv, environ) == -1){
 			safe_printf("%s: Command not found\n", argv[0]);
 			exit(0);
 		}
-	} else {
-		//parent (shell process)
-		//sigprocmask(SIG_UNBLOCK, &mask, NULL); //unblcok sigchild           
-		if (bg == 0) { //fg
+	} else { //parent (shell process)
+		if (bg == 0) {  //if fg, add job and wait
 			addjob(jobs, pidC, FG, cmdline);
 			sigprocmask(SIG_UNBLOCK, &mask, NULL);
 			waitfg(pidC);
-		}  else {
+		}  else { //if bg job
 			addjob(jobs, pidC, BG, cmdline);
 			sigprocmask(SIG_UNBLOCK, &mask, NULL);
-			//[20] (500) /bin/ls -l
 			int jid = pid2jid(pidC); 
 			safe_printf("[%d] (%d) %s", jid, pidC, cmdline);
 		}
@@ -330,16 +326,17 @@ int jid = 0;
 pid_t pid = 0; 
 job_t* job;
 
+//bg run without job
 if (argv[1] == NULL && argv[0][0] == 'b'){
 safe_printf("bg command requires PID or %%jobid argument\n");
 return;
 }
 
+//fg run without job
 if (argv[1] == NULL && argv[0][0] == 'f') {
 safe_printf("fg command requires PID or %%jobid argument\n");
 return;
 }
-
 
 if (argv[1][0] == '%') { //if given jid
         char* jidS = argv[1] + 1;
@@ -348,51 +345,34 @@ if (argv[1][0] == '%') { //if given jid
 } else { //if given pid
         pid = atoi(argv[1]);
         job = getjobpid(jobs,pid);
-
 }
 
 //if argv[1] is not a digit and not %
 if (jid == 0) {
-if (isdigit(argv[1][0]) == 0 && argv[0][0] == 'f') {
-safe_printf("fg: argument must be a PID or %%jobid\n");
-
-return;
+	if (isdigit(argv[1][0]) == 0 && argv[0][0] == 'f') {
+		safe_printf("fg: argument must be a PID or %%jobid\n");
+		return;
+	} else if (isdigit(argv[1][0]) == 0 && argv[0][0] == 'b') {
+		safe_printf("bg: argument must be a PID or %%jobid\n");
+		return;
+	}
 }
 
-if (isdigit(argv[1][0]) == 0 && argv[0][0] == 'b') {
-safe_printf("bg: argument must be a PID or %%jobid\n");
-return;
-}
-}
-
-//if given jid is not valid
-if (jid != 0) {
-	if (job == NULL) {
+//if given invalid jid 
+if (jid != 0 && job == NULL) {
 		safe_printf("%%d: No such job \n", jid);
-	return;
+		return;
 	}
+
 //if given invalid pid
-} else if (pid != 0) {
-	if (job == NULL) {
+if (pid != 0 && job == NULL) {
 		safe_printf("(%d): No such process\n", pid);	
-	}
-	return;
+		return;
 }
 
 //if 'bg'
 if (argv[0][0] == 'b') {
 //send sigcont to stopped bg job and continues running in bg
-
-	//checks if running bg without a job
-//	if (argv[1] == NULL) {
-//		safe_printf("bg command requires PID or %%jobid argument/n");
-//	}
-
-	//bg: argument must be a PID or %jobid
-	//if (jid == 0 && pid == 0) {
-	//	safe_printf("bg: argument must be a PID or %%jobid");
-	//}
-
 	//get pid of the job number
 	job = getjobjid(jobs, jid);
 	job->state = BG;
@@ -401,10 +381,6 @@ if (argv[0][0] == 'b') {
 }
 
 else if (argv[0][0] == 'f') {
-	//checks if running fg without a job
-//	if (argv[1] == NULL) {
-//	 safe_printf("fg command requires PID or %%jobid argument");
-//	}
 
 	///fg: argument must be a PID or %jobid
         if (jid == 0 && pid == 0) {
@@ -414,62 +390,13 @@ else if (argv[0][0] == 'f') {
 	//send stopped or running bg a SICONT TO resume (if stopped) and continue running in fg
 	job = getjobjid(jobs, jid);
 	if (job->state == ST) {
-		//job->state = FG;
 		kill(-(job->pid) , SIGCONT);
-//		waitfg(job->pid);
-		//job->state = FG;
 	} 
-//	kill((-job->pid) , SIGCONT);
 	job-> state =  FG;
 	waitfg(job->pid);
 }
 
-//safe_printf("[%d] (%d) %s", jid, job->pid, job->cmdline);
-//}
 
-
-//argv[0] is bg and argv[1] is job
-
-
-
-      //if can't be converted to an int (not a pid or jid) 
- //      safe_printf("fg: argument must be a PID or %jobid");
-
-
-
-//jobs
-//if (argv[0] == "bg") {
-
-
-//getjobjid()
-
-//getjobpid()
-
-
-//error: running bg without specifying job
-
-//invalid jid to bg
-
-//invlaid jid to bg
-
-//specifying smth other than pid or jid for bg
-
-
-//bg job
-
-
-//} 
-
-//if (argv[0] == "fg") {
-
-//}
-
-//if bg <job>
-//bg command: stopped --> bg
-
-//check if argv is jid or pid
-//get jobpid method
-//get jobjid method
 
 //after you get the job, 
 
@@ -479,12 +406,6 @@ else if (argv[0][0] == 'f') {
 //stopped --> fg
 //bg --> fg
 
-
-
-//THESE TWO WILL BE JUST TAKEN FROM COMMAND LINE AND CALL THE HANDLERS THEMSELCES
-//(THESE SHOULD BE IN THE METHOD)
-//if ctrlc: SIGINT delivered to fg job (all processess) 
-//if ctrlz: SIGSTP delivered to fg. makes it into stopped 
   return;
 }
 
@@ -520,10 +441,6 @@ while (curJob->state ==  FG) {
 void sigchld_handler(int sig) {
   // TODO - implement me!
 
-//SIGTSTP,SIGSTOP  suspend
-
-//if it is terminated, t hen we want to reap 
-
 pid_t pid; 
 int stat; 
 int jid; 
@@ -540,18 +457,15 @@ getjobjid(jobs,jid)->state = ST;
 	//child terminated by signal
 	safe_printf("Job [%d] (%d) terminated by signal %d\n", jid, pid, WTERMSIG(stat));
 	}
-	//only do this when terminated
-	//while there are children to be reaped
+	//reap children when terminated
 	deletejob(jobs, pid); 
 }
 
 }; 
 
-//need to print out a message depending on which sig it was terminated by 
 
 //when the handler is called, this means there sigchild signal sent
 //there must be at least a suspended OR terminated process for this to be called
-
 //to detect a suspended process, use waitpid, and update the job list
 
   return;
@@ -582,10 +496,7 @@ void sigtstp_handler(int sig) {
  
 int fpid = fgpid(jobs); //find pid of fg job 
 if (fpid != 0) {
-        //forwarding to fg job
         kill(-fpid,sig);
-//	job_t* job = getjobpid(jobs, fpid);	 
-//	job->state = ST;
 }
  return;
 }
