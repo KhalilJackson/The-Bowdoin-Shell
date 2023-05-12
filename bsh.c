@@ -370,7 +370,7 @@ if (argv[0][0] == 'b') {
 	job = getjobjid(jobs, jid);
 	job->state = BG;
 	safe_printf("[%d] (%d) %s", jid, job->pid, job->cmdline);
-	kill(job->pid , SIGCONT);
+	kill(-(job->pid) , SIGCONT);
 }
 
 else if (argv[0][0] == 'f') {
@@ -384,19 +384,17 @@ else if (argv[0][0] == 'f') {
                 safe_printf("fg: argument must be a PID or %%jobid");
         }
 
-
-
-	//if can't be converted to an int (not a pid or jid) 
- //      safe_printf("fg: argument must be a PID or %jobid");
-
-
-//send stopped or running bg a SICONT TO resume (if stopped) and continue running in fg
-job = getjobjid(jobs, jid);
-if (job->state == ST) {
-	kill(job->pid , SIGCONT);
-}
-job->state = FG;
-waitfg(job->pid);
+	//send stopped or running bg a SICONT TO resume (if stopped) and continue running in fg
+	job = getjobjid(jobs, jid);
+	if (job->state == ST) {
+		//job->state = FG;
+		kill(-(job->pid) , SIGCONT);
+//		waitfg(job->pid);
+		//job->state = FG;
+	} 
+//	kill((-job->pid) , SIGCONT);
+	job-> state =  FG;
+	waitfg(job->pid);
 }
 
 //safe_printf("[%d] (%d) %s", jid, job->pid, job->cmdline);
@@ -404,6 +402,12 @@ waitfg(job->pid);
 
 
 //argv[0] is bg and argv[1] is job
+
+
+
+      //if can't be converted to an int (not a pid or jid) 
+ //      safe_printf("fg: argument must be a PID or %jobid");
+
 
 
 //jobs
@@ -491,7 +495,7 @@ void sigchld_handler(int sig) {
 
 //SIGTSTP,SIGSTOP  suspend
 
-//if it is terminated, then we want to reap 
+//if it is terminated, t hen we want to reap 
 
 pid_t pid; 
 int stat; 
@@ -553,8 +557,8 @@ int fpid = fgpid(jobs); //find pid of fg job
 if (fpid != 0) {
         //forwarding to fg job
         kill(-fpid,sig);
-	job_t* job = getjobpid(jobs, fpid);	 
-	job->state = ST;
+//	job_t* job = getjobpid(jobs, fpid);	 
+//	job->state = ST;
 }
  return;
 }
