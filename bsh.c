@@ -341,7 +341,6 @@ return;
 }
 
 
-
 if (argv[1][0] == '%') { //if given jid
         char* jidS = argv[1] + 1;
         jid = atoi(jidS);
@@ -349,12 +348,11 @@ if (argv[1][0] == '%') { //if given jid
 } else { //if given pid
         pid = atoi(argv[1]);
         job = getjobpid(jobs,pid);
-} 
 
+}
 
+//if argv[1] is not a digit and not %
 if (jid == 0) {
-
-//if not a digit
 if (isdigit(argv[1][0]) == 0 && argv[0][0] == 'f') {
 safe_printf("fg: argument must be a PID or %%jobid\n");
 
@@ -370,7 +368,7 @@ return;
 //if given jid is not valid
 if (jid != 0) {
 	if (job == NULL) {
-		safe_printf("%%[%d]: No such job \n", jid);
+		safe_printf("%%d: No such job \n", jid);
 	return;
 	}
 //if given invalid pid
