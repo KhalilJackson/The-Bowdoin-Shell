@@ -197,7 +197,10 @@ if (builtIn == 0) {
 	if (pidC == 0) { // if child process
 		sigprocmask(SIG_UNBLOCK, &mask, NULL); //if its a child, unblock 
 		setpgid(0, 0);
-		execve(argv[0], argv, environ); 
+		if(execve(argv[0], argv, environ) == -1){
+			safe_printf("%s: Command not found\n", argv[0]);
+			exit(0);
+		}
 	} else {
 		//parent (shell process)
 		//sigprocmask(SIG_UNBLOCK, &mask, NULL); //unblcok sigchild           
@@ -327,29 +330,55 @@ int jid = 0;
 pid_t pid = 0; 
 job_t* job;
 
+if (argv[1] == NULL && argv[0][0] == 'b'){
+safe_printf("bg command requires PID or %%jobid argument\n");
+return;
+}
 
-//jid has % and pid does not
+if (argv[1] == NULL && argv[0][0] == 'f') {
+safe_printf("fg command requires PID or %%jobid argument\n");
+return;
+}
+
 
 
 if (argv[1][0] == '%') { //if given jid
-char* jidS = argv[1] + 1;
-jid = atoi(jidS);
-job = getjobjid(jobs, jid);
+        char* jidS = argv[1] + 1;
+        jid = atoi(jidS);
+        job = getjobjid(jobs, jid);
 } else { //if given pid
-pid = atoi(argv[1]);
-job = getjobpid(jobs,pid);
+        pid = atoi(argv[1]);
+        job = getjobpid(jobs,pid);
 } 
+
+
+if (jid == 0) {
+
+//if not a digit
+if (isdigit(argv[1][0]) == 0 && argv[0][0] == 'f') {
+safe_printf("fg: argument must be a PID or %%jobid\n");
+
+return;
+}
+
+if (isdigit(argv[1][0]) == 0 && argv[0][0] == 'b') {
+safe_printf("bg: argument must be a PID or %%jobid\n");
+return;
+}
+}
 
 //if given jid is not valid
 if (jid != 0) {
 	if (job == NULL) {
-		safe_printf("%%[%d]: No such job", jid);
+		safe_printf("%%[%d]: No such job \n", jid);
+	return;
 	}
 //if given invalid pid
 } else if (pid != 0) {
 	if (job == NULL) {
-		safe_printf("(%d): No such process", pid);	
+		safe_printf("(%d): No such process\n", pid);	
 	}
+	return;
 }
 
 //if 'bg'
@@ -357,14 +386,14 @@ if (argv[0][0] == 'b') {
 //send sigcont to stopped bg job and continues running in bg
 
 	//checks if running bg without a job
-	if (argv[1] == NULL) {
-		safe_printf("bg command requires PID or %%jobid argument/n");
-	}
+//	if (argv[1] == NULL) {
+//		safe_printf("bg command requires PID or %%jobid argument/n");
+//	}
 
 	//bg: argument must be a PID or %jobid
-	if (jid == 0 && pid == 0) {
-		safe_printf("bg: argument must be a PID or %%jobid");
-	}
+	//if (jid == 0 && pid == 0) {
+	//	safe_printf("bg: argument must be a PID or %%jobid");
+	//}
 
 	//get pid of the job number
 	job = getjobjid(jobs, jid);
@@ -375,9 +404,9 @@ if (argv[0][0] == 'b') {
 
 else if (argv[0][0] == 'f') {
 	//checks if running fg without a job
-	if (argv[1] == NULL) {
-	 safe_printf("fg command requires PID or %%jobid argument");
-	}
+//	if (argv[1] == NULL) {
+//	 safe_printf("fg command requires PID or %%jobid argument");
+//	}
 
 	///fg: argument must be a PID or %jobid
         if (jid == 0 && pid == 0) {
