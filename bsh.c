@@ -324,45 +324,35 @@ void do_bgfg(char** argv) {
   // TODO - implement me!
 
 int jid = 0; 
-
 pid_t pid = 0; 
-
 job_t* job;
-//if given jid
-if (argv[1][0] == '%') {
+
+
+//jid has % and pid does not
+
+
+if (argv[1][0] == '%') { //if given jid
 char* jidS = argv[1] + 1;
 jid = atoi(jidS);
 job = getjobjid(jobs, jid);
-} else {
+} else { //if given pid
 pid = atoi(argv[1]);
+job = getjobpid(jobs,pid);
 } 
-
 
 //if given jid is not valid
 if (jid != 0) {
 	if (job == NULL) {
 		safe_printf("%%[%d]: No such job", jid);
 	}
+//if given invalid pid
+} else if (pid != 0) {
+	if (job == NULL) {
+		safe_printf("(%d): No such process", pid);	
+	}
 }
-//} else {
-//if given pid not valid
 
-
-
-//pid_t pid = job->pid;
-
-
-//see if pid is null and print message
-//if (== NULL) {
-//	safe_printf("(500): No such process");
-//}
-
-
-//jid has percentage
-//pid has no percentage
-
-
-
+//if 'bg'
 if (argv[0][0] == 'b') {
 //send sigcont to stopped bg job and continues running in bg
 
@@ -388,6 +378,12 @@ else if (argv[0][0] == 'f') {
 	if (argv[1] == NULL) {
 	 safe_printf("fg command requires PID or %%jobid argument");
 	}
+
+	///fg: argument must be a PID or %jobid
+        if (jid == 0 && pid == 0) {
+                safe_printf("fg: argument must be a PID or %%jobid");
+        }
+
 
 
 	//if can't be converted to an int (not a pid or jid) 
@@ -506,12 +502,12 @@ jid = pid2jid(pid);
 
 //if child is stopped
 if (WIFSTOPPED(stat)) {
-safe_printf("Job [%d] (%d) stopped by signal %d\n", jid, pid, WEXITSTATUS(stat));
+safe_printf("Job [%d] (%d) stopped by signal %d\n", jid, pid, WSTOPSIG(stat));
 getjobjid(jobs,jid)->state = ST; 
 } else {
 	if (WIFSIGNALED(stat)) {
 	//child terminated by signal
-	safe_printf("Job [%d] (%d) terminated by signal %d\n", jid, pid, WEXITSTATUS(stat));
+	safe_printf("Job [%d] (%d) terminated by signal %d\n", jid, pid, WTERMSIG(stat));
 	}
 	//only do this when terminated
 	//while there are children to be reaped
@@ -522,15 +518,11 @@ getjobjid(jobs,jid)->state = ST;
 
 //need to print out a message depending on which sig it was terminated by 
 
-
-
 //when the handler is called, this means there sigchild signal sent
 //there must be at least a suspended OR terminated process for this to be called
 
 //to detect a suspended process, use waitpid, and update the job list
 
-
-//confused?? what does it mean to reap?? 
   return;
 }
 
